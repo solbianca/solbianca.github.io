@@ -46,15 +46,15 @@ module.exports=[
 },{}],2:[function(require,module,exports){
 'use strict';
 
-var _Boot = require('./modules/Bootstrap/Boot');
+var _Boot = require('./modules/Boot');
 
 var Boot = _interopRequireWildcard(_Boot);
 
-var _Load = require('./modules/Bootstrap/Load');
+var _Load = require('./modules/Load');
 
 var Load = _interopRequireWildcard(_Load);
 
-var _End = require('./modules/Bootstrap/End');
+var _End = require('./modules/End');
 
 var End = _interopRequireWildcard(_End);
 
@@ -77,7 +77,7 @@ LevelsFactory.create(game);
 game.state.add('end', End.init(game));
 game.state.start('boot');
 
-},{"./modules/Bootstrap/Boot":4,"./modules/Bootstrap/End":5,"./modules/Bootstrap/Load":6,"./modules/LevelsFactory":9}],3:[function(require,module,exports){
+},{"./modules/Boot":4,"./modules/End":7,"./modules/LevelsFactory":8,"./modules/Load":9}],3:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -159,6 +159,74 @@ function setGlobal(game) {
 },{}],5:[function(require,module,exports){
 'use strict';
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.update = update;
+
+var _Bones = require('./Bones');
+
+var Bones = _interopRequireWildcard(_Bones);
+
+var _Score = require('./Score');
+
+var Score = _interopRequireWildcard(_Score);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+function update(game, level) {
+
+  var bones = game.global.level.bones;
+  var platforms = game.global.level.platforms;
+  var player = game.global.level.player;
+  var sounds = game.global.level.sounds;
+
+  var overlapPlayerBones = function overlapPlayerBones(player, bone) {
+    Bones.collect(game, bone, sounds.getBoneSfx);
+    if (isGameEnded(game.global.collectedBones, level.totalBones)) {
+      Score.calculate(game, true);
+      var go = function go() {
+        return game.state.start(level.nextLevel);
+      };
+      game.camera.fade('#000', 800);
+      game.camera.onFadeComplete.add(go);
+    }
+  };
+
+  game.physics.arcade.collide(bones, platforms);
+  game.physics.arcade.collide(player, platforms);
+  game.physics.arcade.overlap(player, bones, overlapPlayerBones);
+}
+
+function isGameEnded(collectedBones, totalBonesCheck) {
+  return collectedBones === totalBonesCheck;
+}
+
+},{"./Bones":3,"./Score":13}],6:[function(require,module,exports){
+'use strict';
+
+/**
+ * @param {Phaser.Game} game
+ */
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.defaultValues = defaultValues;
+function defaultValues(game) {
+  game.add.sprite(0, 0, 'background');
+
+  var getBoneSfx = game.add.audio('getBone');
+  var cursors = game.input.keyboard.createCursorKeys();
+  var spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+  var sounds = { getBoneSfx: getBoneSfx };
+
+  return { sounds: sounds, cursors: cursors, spaceKey: spaceKey };
+}
+
+},{}],7:[function(require,module,exports){
+'use strict';
+
 /**
  * @param {Phaser.Game} game
  */
@@ -230,139 +298,7 @@ function _update(game) {
   }
 }
 
-},{}],6:[function(require,module,exports){
-'use strict';
-
-/**
- * @param {Phaser.Game} game
- */
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.init = init;
-function init(game) {
-  return {
-    preload: function preload() {
-      return _preload(game);
-    },
-    create: function create() {
-      return _create(game);
-    }
-  };
-}
-
-/**
- * @param {Phaser.Game} game
- */
-function _preload(game) {
-  var textLoading = game.add.text(game.world.centerX, 250, 'LOADING...', { font: '70px grobold', fill: '#fff' });
-  textLoading.anchor.set(0.5);
-
-  var progressBar = game.add.sprite(game.world.centerX, 310, 'progressBar');
-  progressBar.anchor.set(0.5);
-
-  game.load.setPreloadSprite(progressBar);
-  loadDefaultAssets(game);
-}
-
-/**
- * @param {Phaser.Game} game
- */
-function _create(game) {
-  setTimeout(function () {
-    game.state.start('01');
-  }, 500);
-}
-
-/**
- * @param {Phaser.Game} game
- */
-function loadDefaultAssets(game) {
-  game.load.image('background', 'assets/images/paw_patrol_bg.png');
-  game.load.image('platform', 'assets/images/platform.png');
-  game.load.image('bone', 'assets/images/bone.png');
-
-  //sprites
-  // game.load.spritesheet('character', 'assets/images/rubble.png', 80.5, 71);
-  // game.load.spritesheet('character', 'assets/images/rubble.png', 80.5, 71);
-  game.load.spritesheet('character', 'assets/images/dude.png', 32, 48);
-
-  //sounds
-  game.load.audio('bgSound', 'assets/sounds/paw-patrol-theme-song.mp3');
-  game.load.audio('getBone', 'assets/sounds/get-item.ogg');
-  game.load.audio('gameOver', 'assets/sounds/game-over.ogg');
-}
-
-},{}],7:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.update = update;
-
-var _Bones = require('./Bones');
-
-var Bones = _interopRequireWildcard(_Bones);
-
-var _Score = require('./Score');
-
-var Score = _interopRequireWildcard(_Score);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
-function update(game, level) {
-
-  var bones = game.global.level.bones;
-  var platforms = game.global.level.platforms;
-  var player = game.global.level.player;
-  var sounds = game.global.level.sounds;
-
-  var overlapPlayerBones = function overlapPlayerBones(player, bone) {
-    Bones.collect(game, bone, sounds.getBoneSfx);
-    if (isGameEnded(game.global.collectedBones, level.totalBones)) {
-      Score.calculate(game, true);
-      var go = function go() {
-        return game.state.start(level.nextLevel);
-      };
-      game.camera.fade('#000', 800);
-      game.camera.onFadeComplete.add(go);
-    }
-  };
-
-  game.physics.arcade.collide(bones, platforms);
-  game.physics.arcade.collide(player, platforms);
-  game.physics.arcade.overlap(player, bones, overlapPlayerBones);
-}
-
-function isGameEnded(collectedBones, totalBonesCheck) {
-  return collectedBones === totalBonesCheck;
-}
-
-},{"./Bones":3,"./Score":13}],8:[function(require,module,exports){
-'use strict';
-
-/**
- * @param {Phaser.Game} game
- */
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.defaultValues = defaultValues;
-function defaultValues(game) {
-  game.add.sprite(0, 0, 'background');
-
-  var getBoneSfx = game.add.audio('getBone');
-  var cursors = game.input.keyboard.createCursorKeys();
-  var spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
-  var sounds = { getBoneSfx: getBoneSfx };
-
-  return { sounds: sounds, cursors: cursors, spaceKey: spaceKey };
-}
-
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -459,7 +395,7 @@ function createLevel(game, level) {
   var player = Player.create(game);
   var bones = Bones.create(game, level.totalBones);
 
-  Timer.create(game, 20, level);
+  Timer.create(game, 15, level);
 
   var sounds = defaultLevelConfig.sounds;
   var cursors = defaultLevelConfig.cursors;
@@ -532,7 +468,71 @@ function isLevelValid(level) {
   return true;
 }
 
-},{"../data/levels":1,"./Bones":3,"./Collision":7,"./Config":8,"./Music":10,"./Platforms":11,"./Player":12,"./Timer":14}],10:[function(require,module,exports){
+},{"../data/levels":1,"./Bones":3,"./Collision":5,"./Config":6,"./Music":10,"./Platforms":11,"./Player":12,"./Timer":14}],9:[function(require,module,exports){
+'use strict';
+
+/**
+ * @param {Phaser.Game} game
+ */
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.init = init;
+function init(game) {
+  return {
+    preload: function preload() {
+      return _preload(game);
+    },
+    create: function create() {
+      return _create(game);
+    }
+  };
+}
+
+/**
+ * @param {Phaser.Game} game
+ */
+function _preload(game) {
+  var textLoading = game.add.text(game.world.centerX, 250, 'LOADING...', { font: '70px grobold', fill: '#fff' });
+  textLoading.anchor.set(0.5);
+
+  var progressBar = game.add.sprite(game.world.centerX, 310, 'progressBar');
+  progressBar.anchor.set(0.5);
+
+  game.load.setPreloadSprite(progressBar);
+  loadDefaultAssets(game);
+}
+
+/**
+ * @param {Phaser.Game} game
+ */
+function _create(game) {
+  setTimeout(function () {
+    game.state.start('01');
+  }, 500);
+}
+
+/**
+ * @param {Phaser.Game} game
+ */
+function loadDefaultAssets(game) {
+  game.load.image('background', 'assets/images/paw_patrol_bg.png');
+  game.load.image('platform', 'assets/images/platform.png');
+  game.load.image('bone', 'assets/images/bone.png');
+
+  //sprites
+  // game.load.spritesheet('character', 'assets/images/rubble.png', 80.5, 71);
+  // game.load.spritesheet('character', 'assets/images/rubble.png', 80.5, 71);
+  game.load.spritesheet('character', 'assets/images/dude.png', 32, 48);
+
+  //sounds
+  game.load.audio('bgSound', 'assets/sounds/paw-patrol-theme-song.mp3');
+  game.load.audio('getBone', 'assets/sounds/get-item.ogg');
+  game.load.audio('gameOver', 'assets/sounds/game-over.ogg');
+}
+
+},{}],10:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -633,7 +633,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.calculate = calculate;
 function calculate(game, isGameOver) {
-  var score = (game.global.timeLevel + 1) * game.global.collectedBones;
+  var score = game.global.collectedBones;
   game.global.score += score;
   game.global.scoreText = 'Score: ' + game.global.score;
   game.global.timeLevel = 0;
