@@ -395,7 +395,7 @@ function createLevel(game, level) {
   var player = Player.create(game);
   var bones = Bones.create(game, level.totalBones);
 
-  Timer.create(game, 15, level);
+  Timer.create(game, 20, level);
 
   var sounds = defaultLevelConfig.sounds;
   var cursors = defaultLevelConfig.cursors;
@@ -635,7 +635,7 @@ exports.calculate = calculate;
 function calculate(game, isGameOver) {
   var score = game.global.collectedBones;
   game.global.score += score;
-  game.global.scoreText = 'Score: ' + game.global.score;
+  game.global.scoreText.text = 'Score: ' + game.global.score;
   game.global.timeLevel = 0;
   game.global.collectedBones = 0;
   if (isGameOver) {
