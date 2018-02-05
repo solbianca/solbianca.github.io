@@ -2,40 +2,43 @@
 module.exports=[
   {
     "level": "01",
-    "platforms":[
+    "staticPlatforms":[
       {"x":400,"y":400},
       {"x":-150,"y":250}
     ],
+    "movablePlatforms":[],
     "totalBones": 16,
     "nextLevel": "02"
   },
   {
     "level": "02",
-    "platforms":[
+    "staticPlatforms":[
       {"x":303,"y":130,"scale": [0.5,1]},
       {"x":440,"y":400,"scale": [0.89,1]},
       {"x":-150,"y":270}
     ],
+    "movablePlatforms":[],
     "totalBones": 16,
     "nextLevel": "03"
   },
   {
     "level": "03",
-    "platforms":[
+    "staticPlatforms":[
       {"x":850,"y":450},
       {"x":335,"y":310},
       {"x":-150,"y":250}
     ],
+    "movablePlatforms":[],
     "totalBones": 16,
     "nextLevel": "04"
   },
   {
     "level": "04",
-    "platforms":[
+    "staticPlatforms":[
       {"x":335,"y":310},
-      {"x":-150,"y":250}
+      {"x":-150,"y":200}
     ],
-    "platformsMovable":[
+    "movablePlatforms":[
       {"x":850,"y":450}
     ],
     "totalBones": 16,
@@ -58,9 +61,9 @@ var _End = require('./modules/End');
 
 var End = _interopRequireWildcard(_End);
 
-var _LevelsFactory = require('./modules/LevelsFactory');
+var _Levels = require('./modules/Levels');
 
-var LevelsFactory = _interopRequireWildcard(_LevelsFactory);
+var Levels = _interopRequireWildcard(_Levels);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
@@ -69,15 +72,14 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  */
 var game = new Phaser.Game(1067, 600, Phaser.AUTO, 'gameDiv');
 
-Boot.setGlobal(game);
-
 game.state.add('boot', Boot.init(game));
 game.state.add('load', Load.init(game));
-LevelsFactory.create(game);
+game.state.add('levels', Levels.init(game));
 game.state.add('end', End.init(game));
+
 game.state.start('boot');
 
-},{"./modules/Boot":4,"./modules/End":7,"./modules/LevelsFactory":8,"./modules/Load":9}],3:[function(require,module,exports){
+},{"./modules/Boot":4,"./modules/End":6,"./modules/Levels":7,"./modules/Load":9}],3:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -85,25 +87,48 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.create = create;
 exports.collect = collect;
+
+var _Random = require('./Random');
+
+var Random = _interopRequireWildcard(_Random);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+/**
+ * @param {Phaser.Game} game
+ * @param {integer} quantity
+ */
 function create(game, quantity) {
   var bones = game.add.group();
   bones.enableBody = true;
 
   for (var i = 0; i < quantity; i++) {
     var bone = void 0;
-    if (i === 0) bone = bones.create(10, 0, 'bone');else bone = bones.create(i * 68, 0, 'bone');
+    var skin = Random.int(0, 4);
+    if (i === 0) {
+      bone = bones.create(10, 0, 'bone', skin);
+    } else {
+      bone = bones.create(i * 68, 0, 'bone', skin);
+    }
 
     bone.body.gravity.y = 200;
-    bone.body.bounce.y = 0.5 + Math.random() * 0.2; //o quique do osso ao tocar o solo
+    bone.body.bounce.y = 0.5 + Math.random() * 0.2;
   }
 
   return bones;
 }
 
+/**
+ * @param {Phaser.Game} game
+ * @param {Phaser.Sprite} bone
+ * @param {Phaser.Sound} sfx
+ */
 function collect(game, bone) {
   var sfx = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
-  if (sfx) sfx.play();
+  if (sfx) {
+    sfx.play();
+  }
   bone.kill();
   game.global.collectedBones++;
   var score = game.global.score + game.global.collectedBones;
@@ -111,7 +136,7 @@ function collect(game, bone) {
   game.global.levelScoreText.text = 'Level score: ' + game.global.collectedBones;
 }
 
-},{}],4:[function(require,module,exports){
+},{"./Random":13}],4:[function(require,module,exports){
 'use strict';
 
 /**
@@ -122,7 +147,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.init = init;
-exports.setGlobal = setGlobal;
 function init(game) {
   return {
     preload: function preload(game) {
@@ -149,13 +173,6 @@ function _create(game) {
   game.state.start('load');
 }
 
-/**
- * @param {Phaser.Game} game
- */
-function setGlobal(game) {
-  game.global = { music: {}, timeLevel: 0, score: 0, collectedBones: 0 };
-}
-
 },{}],5:[function(require,module,exports){
 'use strict';
 
@@ -174,12 +191,18 @@ var Score = _interopRequireWildcard(_Score);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
+/**
+ * @param {Phaser.Game} game
+ * @param {string} level
+ */
 function update(game, level) {
 
   var bones = game.global.level.bones;
-  var platforms = game.global.level.platforms;
+  var staticPlatforms = game.global.level.staticPlatforms;
+  var movablePlatforms = game.global.level.movablePlatforms;
+  var ground = game.global.level.ground;
   var player = game.global.level.player;
-  var sounds = game.global.level.sounds;
+  var sounds = game.global.sounds;
 
   var overlapPlayerBones = function overlapPlayerBones(player, bone) {
     Bones.collect(game, bone, sounds.getBoneSfx);
@@ -193,38 +216,27 @@ function update(game, level) {
     }
   };
 
-  game.physics.arcade.collide(bones, platforms);
-  game.physics.arcade.collide(player, platforms);
+  game.physics.arcade.collide(bones, staticPlatforms);
+  game.physics.arcade.collide(bones, movablePlatforms);
+  game.physics.arcade.collide(bones, ground);
+  game.physics.arcade.collide(player, staticPlatforms);
+  game.physics.arcade.collide(player, movablePlatforms);
+  game.physics.arcade.collide(player, ground);
+  game.physics.arcade.collide(ground, movablePlatforms);
   game.physics.arcade.overlap(player, bones, overlapPlayerBones);
 }
 
+/**
+ *
+ * @param {integer} collectedBones
+ * @param {integer} totalBonesCheck
+ * @return {boolean}
+ */
 function isGameEnded(collectedBones, totalBonesCheck) {
   return collectedBones === totalBonesCheck;
 }
 
-},{"./Bones":3,"./Score":13}],6:[function(require,module,exports){
-'use strict';
-
-/**
- * @param {Phaser.Game} game
- */
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.defaultValues = defaultValues;
-function defaultValues(game) {
-  game.add.sprite(0, 0, 'background');
-
-  var getBoneSfx = game.add.audio('getBone');
-  var cursors = game.input.keyboard.createCursorKeys();
-  var spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
-  var sounds = { getBoneSfx: getBoneSfx };
-
-  return { sounds: sounds, cursors: cursors, spaceKey: spaceKey };
-}
-
-},{}],7:[function(require,module,exports){
+},{"./Bones":3,"./Score":14}],6:[function(require,module,exports){
 'use strict';
 
 /**
@@ -282,7 +294,6 @@ function _create(game) {
     return game.add.tween(txtPressEnter).to({ alpha: 1 }, 700).to({ alpha: 0 }, 700).loop().start();
   };
   game.time.events.add(1000, txtBlink);
-  console.log(game.global.collectedBones);
 }
 
 /**
@@ -294,11 +305,70 @@ function _update(game) {
     game.global.timeLevel = 0;
     game.global.score = 0;
     game.global.collectedBones = 0;
-    game.state.start('01'); //for now, later wil go to menu
+    game.state.start('levels'); //for now, later wil go to menu
   }
 }
 
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.init = init;
+
+var _LevelsFactory = require('./LevelsFactory');
+
+var LevelsFactory = _interopRequireWildcard(_LevelsFactory);
+
+var _Music = require('./Music');
+
+var Music = _interopRequireWildcard(_Music);
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+/**
+ * @param {Phaser.Game} game
+ */
+function init(game) {
+  return {
+    preload: function preload(game) {
+      return _preload(game);
+    },
+    create: function create() {
+      return _create(game);
+    }
+  };
+}
+
+/**
+ * @param {Phaser.Game} game
+ */
+function _preload(game) {
+  game.global = { music: {}, timeLevel: 0, score: 0, collectedBones: 0 };
+
+  game.global.music = Music.createBackgroundMusic(game);
+  game.global.music.play();
+
+  var getBoneSfx = game.add.audio('getBone');
+
+  game.global.sounds = { getBoneSfx: getBoneSfx };
+  game.global.cursors = game.input.keyboard.createCursorKeys();
+  game.global.spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+
+  LevelsFactory.create(game);
+}
+
+/**
+ * @param {Phaser.Game} game
+ */
+function _create(game) {
+  setTimeout(function () {
+    game.state.start('01');
+  }, 500);
+}
+
+},{"./LevelsFactory":8,"./Music":10}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -308,10 +378,6 @@ Object.defineProperty(exports, "__esModule", {
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 exports.create = create;
-
-var _Config = require('./Config');
-
-var Config = _interopRequireWildcard(_Config);
 
 var _Platforms = require('./Platforms');
 
@@ -328,10 +394,6 @@ var Bones = _interopRequireWildcard(_Bones);
 var _Timer = require('./Timer');
 
 var Timer = _interopRequireWildcard(_Timer);
-
-var _Music = require('./Music');
-
-var Music = _interopRequireWildcard(_Music);
 
 var _Collision = require('./Collision');
 
@@ -389,29 +451,28 @@ function create(game) {
   }
 }
 
+/**
+ * @param {Phaser.Game} game
+ * @param {object} level
+ */
 function createLevel(game, level) {
-  var defaultLevelConfig = Config.defaultValues(game);
-  var platforms = Platforms.create(game, level.platforms);
+  game.add.sprite(0, 0, 'background');
+
+  var staticPlatforms = Platforms.createStatic(game, level.staticPlatforms);
+  var movablePlatforms = Platforms.createMovable(game, level.movablePlatforms);
+  var ground = Platforms.createGround(game);
   var player = Player.create(game);
   var bones = Bones.create(game, level.totalBones);
 
   Timer.create(game, 20, level);
 
-  var sounds = defaultLevelConfig.sounds;
-  var cursors = defaultLevelConfig.cursors;
-  var spaceKey = defaultLevelConfig.spaceKey;
-
   game.global.level = {
-    platforms: platforms,
+    staticPlatforms: staticPlatforms,
+    movablePlatforms: movablePlatforms,
+    ground: ground,
     player: player,
-    bones: bones,
-    sounds: sounds,
-    cursors: cursors,
-    spaceKey: spaceKey
+    bones: bones
   };
-
-  game.global.music = Music.createBackgroundMusic(game);
-  game.global.music.play();
 
   var score = 'Score: ' + game.global.score;
   var levelScore = 'Level score: 0';
@@ -421,23 +482,27 @@ function createLevel(game, level) {
 
 function updateLevel(game, level) {
   Collision.update(game, level);
-  Player.update(game.global.level.player, game.global.level.cursors, game.global.level.spaceKey);
+  Player.update(game.global.level.player, game.global.cursors, game.global.spaceKey);
 }
 
 /**
- * @param value
- * @returns boolean
+ * @param {array} value
+ * @returns {boolean}
  */
 function isLevelsValid(value) {
   return Array.isArray(value) && value.length > 0;
 }
 
+/**
+ * @param {object} level
+ * @return {boolean}
+ */
 function isLevelValid(level) {
   if ((typeof level === 'undefined' ? 'undefined' : _typeof(level)) !== 'object') {
     return false;
   }
 
-  var properties = ['level', 'platforms', 'totalBones', 'nextLevel'];
+  var properties = ['level', 'staticPlatforms', 'movablePlatforms', 'totalBones', 'nextLevel'];
   var _iteratorNormalCompletion2 = true;
   var _didIteratorError2 = false;
   var _iteratorError2 = undefined;
@@ -468,7 +533,7 @@ function isLevelValid(level) {
   return true;
 }
 
-},{"../data/levels":1,"./Bones":3,"./Collision":5,"./Config":6,"./Music":10,"./Platforms":11,"./Player":12,"./Timer":14}],9:[function(require,module,exports){
+},{"../data/levels":1,"./Bones":3,"./Collision":5,"./Platforms":11,"./Player":12,"./Timer":15}],9:[function(require,module,exports){
 'use strict';
 
 /**
@@ -508,9 +573,8 @@ function _preload(game) {
  * @param {Phaser.Game} game
  */
 function _create(game) {
-  setTimeout(function () {
-    game.state.start('01');
-  }, 500);
+  game.state.start('levels');
+  // setTimeout(function () { game.state.start('01'); }, 500);
 }
 
 /**
@@ -520,6 +584,7 @@ function loadDefaultAssets(game) {
   game.load.image('background', 'assets/images/paw_patrol_bg.png');
   game.load.image('platform', 'assets/images/platform.png');
   game.load.image('bone', 'assets/images/bone.png');
+  game.load.spritesheet('bone', 'assets/images/gameboy_seize_color_40x60.png', 40, 60);
 
   //sprites
   // game.load.spritesheet('character', 'assets/images/rubble.png', 80.5, 71);
@@ -534,6 +599,10 @@ function loadDefaultAssets(game) {
 
 },{}],10:[function(require,module,exports){
 'use strict';
+
+/**
+ * @param {Phaser.Game} game
+ */
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -550,34 +619,81 @@ function createBackgroundMusic(game) {
 },{}],11:[function(require,module,exports){
 'use strict';
 
+/**
+ * @param {Phaser.Game} game
+ * @param {array} platformsLevelData
+ * @return {Phaser.Group}
+ */
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.create = create;
-function create(game, levelData) {
-  var isMovable = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0;
-
+exports.createStatic = createStatic;
+exports.createMovable = createMovable;
+exports.createGround = createGround;
+function createStatic(game, platformsLevelData) {
   var platforms = game.add.group();
   platforms.enableBody = true;
 
-  for (var key in levelData) {
-    var platform = platforms.create(levelData[key].x, levelData[key].y, 'platform');
-    platform.body.immovable = true;
-    if ("scale" in levelData[key]) platform.scale.setTo(levelData[key].scale[0], levelData[key].scale[1]);
-  }
+  for (var key in platformsLevelData) {
+    var platform = platforms.create(platformsLevelData[key].x, platformsLevelData[key].y, 'platform');
 
-  if (!isMovable) {
-    //create Ground
-    var ground = platforms.create(0, game.world.height - 57.6, 'platform');
-    ground.scale.setTo(2.6675, 1.8);
-    ground.body.immovable = true;
+    platform.body.immovable = true;
+
+    if ('scale' in platformsLevelData[key]) {
+      platform.scale.setTo(platformsLevelData[key].scale[0], platformsLevelData[key].scale[1]);
+    }
   }
 
   return platforms;
-};
+}
+
+/**
+ * @param {Phaser.Game} game
+ * @param {array} platformsLevelData
+ * @return {Phaser.Group}
+ */
+function createMovable(game, platformsLevelData) {
+  var platforms = game.add.group();
+  platforms.enableBody = true;
+
+  for (var key in platformsLevelData) {
+    var platform = platforms.create(platformsLevelData[key].x, platformsLevelData[key].y, 'platform');
+
+    platform.body.immovable = true;
+    platform.body.bounce.y = 1;
+    platform.body.collideWorldBounds = true;
+    platform.body.gravity.y = 200;
+
+    if ('scale' in platformsLevelData[key]) {
+      platform.scale.setTo(platformsLevelData[key].scale[0], platformsLevelData[key].scale[1]);
+    }
+  }
+
+  return platforms;
+}
+
+/**
+ * @param {Phaser.Game} game
+ * @return {Phaser.Group}
+ */
+function createGround(game) {
+  var ground = game.add.group();
+  ground.enableBody = true;
+
+  var platform = ground.create(0, game.world.height - 57.6, 'platform');
+  platform.scale.setTo(2.6675, 1.8);
+  platform.body.immovable = true;
+
+  return ground;
+}
 
 },{}],12:[function(require,module,exports){
 'use strict';
+
+/**
+ * @param {Phaser.Game} game
+ */
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -604,6 +720,11 @@ function create(game) {
   return player;
 }
 
+/**
+ * @param {Phaser.Sprite} player
+ * @param {object} cursors
+ * @param {Phaser.Key} spaceKey
+ */
 function update(player, cursors, spaceKey) {
   player.body.velocity.x = 0;
 
@@ -628,6 +749,30 @@ function update(player, cursors, spaceKey) {
 },{}],13:[function(require,module,exports){
 'use strict';
 
+/**
+ * Get a random integer between `min` and `max`.
+ *
+ * @param {number} min - min number
+ * @param {number} max - max number
+ * @return {number} a random integer
+ */
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.int = int;
+function int(min, max) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+},{}],14:[function(require,module,exports){
+'use strict';
+
+/**
+ * @param {Phaser.Game} game
+ * @param {boolean} isGameOver
+ */
+
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
@@ -643,7 +788,7 @@ function calculate(game, isGameOver) {
   }
 }
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -657,7 +802,14 @@ var Score = _interopRequireWildcard(_Score);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
+/**
+ * @param {Phaser.Game} game
+ * @param {integer} timer
+ * @param {object} level
+ */
 function create(game, timer, level) {
+  console.log(timer);
+  console.log(level);
   var txtTimer = game.add.text(game.width - 10, 10, '00:' + timer, { font: '35px grobold', fill: '#fff' });
   txtTimer.anchor.set(1, 0);
 
@@ -674,10 +826,12 @@ function create(game, timer, level) {
     }
 
     txtTimer.text = '00:' + (timer < 10 ? '0' : '') + timer;
-    if (game.global.timeLevel !== -1) game.global.timeLevel = timer;
+    if (game.global.timeLevel !== -1) {
+      game.global.timeLevel = timer;
+    }
   };
 
   game.time.events.loop(1000, updateTime);
 }
 
-},{"./Score":13}]},{},[2]);
+},{"./Score":14}]},{},[2]);
